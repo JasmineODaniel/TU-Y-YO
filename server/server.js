@@ -4,24 +4,21 @@ const mongoose = require("mongoose");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 const http = require("http");
-const { Server } = require("socket.io");
+const { WebSocketServer } = require("ws");
+const url = require("url");
 require("dotenv").config();
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: "*" }
-});
+const wss = new WebSocketServer({ noServer: true });
 
 app.use(cors());
-app.use(express.json({ limit: '10mb' })); // Higher limit for profile pics
+app.use(express.json({ limit: '10mb' }));
 
-// MongoDB Connection
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected ✅"))
-  .catch((err) => console.log("MongoDB error ❌", err));
+  .then(() => console.log("MongoDB connected"))
+  .catch((err) => console.log("MongoDB error", err));
 
-// Models
 const UserSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   display_name: { type: String, required: true },
@@ -36,7 +33,7 @@ const UserSchema = new mongoose.Schema({
 const MessageSchema = new mongoose.Schema({
   from_user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   to_user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  payload: { type: String, required: true }, // Encrypted payload
+  payload: { type: String, required: true },
   created_at: { type: Date, default: Date.now },
   delivered: { type: Boolean, default: false }
 });
@@ -44,7 +41,6 @@ const MessageSchema = new mongoose.Schema({
 const User = mongoose.model("User", UserSchema);
 const Message = mongoose.model("Message", MessageSchema);
 
-// Middleware
 const authenticate = (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
   if (!token) return res.status(401).json({ detail: "Unauthorized" });
@@ -57,7 +53,6 @@ const authenticate = (req, res, next) => {
   }
 };
 
-// Auth Routes
 app.post("/auth/register", async (req, res) => {
   try {
     const { username, display_name, password, public_key, wrapped_private_key, pbkdf2_salt } = req.body;
@@ -90,7 +85,6 @@ app.get("/auth/me", authenticate, async (req, res) => {
   res.json({ id: user._id, username: user.username, display_name: user.display_name, profilePic: user.profilePic });
 });
 
-// User Routes
 app.get("/users/search", authenticate, async (req, res) => {
   const { q } = req.query;
   const users = await User.find({ 
@@ -118,7 +112,6 @@ app.post("/users/profile-pic", authenticate, async (req, res) => {
   }
 });
 
-// Conversation Routes
 app.get("/conversations", authenticate, async (req, res) => {
   try {
     const messages = await Message.find({
@@ -132,13 +125,15 @@ app.get("/conversations", authenticate, async (req, res) => {
       if (!partners.has(partnerId.toString())) {
         partners.add(partnerId.toString());
         const user = await User.findById(partnerId);
-        convos.push({
-          user_id: user._id,
-          display_name: user.display_name,
-          username: user.username,
-          profile_pic: user.profilePic,
-          last_message_at: msg.created_at
-        });
+        if (user) {
+          convos.push({
+            user_id: user._id,
+            display_name: user.display_name,
+            username: user.username,
+            profile_pic: user.profilePic,
+            last_message_at: msg.created_at
+          });
+        }
       }
     }
     res.json(convos);
@@ -164,46 +159,60 @@ app.get("/conversations/:userId/messages", authenticate, async (req, res) => {
   })));
 });
 
-// Socket.io Logic
 const userSockets = new Map();
-io.on("connection", (socket) => {
-  const token = socket.handshake.auth.token;
-  if (!token) return socket.disconnect();
+
+wss.on("connection", (ws, req, userId) => {
+  userSockets.set(userId, ws);
+  
+  ws.on("message", async (msgStr) => {
+    try {
+      const data = JSON.parse(msgStr);
+      if (data.type === "message.send") {
+        const { to, payload } = data;
+        const msg = new Message({ from_user_id: userId, to_user_id: to, payload });
+        await msg.save();
+        
+        const recipientWs = userSockets.get(to);
+        const outMsg = {
+          type: "message.receive",
+          data: {
+            id: msg._id,
+            from_user_id: userId,
+            to_user_id: to,
+            payload,
+            created_at: msg.created_at
+          }
+        };
+        
+        if (recipientWs && recipientWs.readyState === 1) {
+          recipientWs.send(JSON.stringify(outMsg));
+        }
+        ws.send(JSON.stringify(outMsg));
+      }
+    } catch (err) {
+      console.error("WS Message Error", err);
+    }
+  });
+
+  ws.on("close", () => {
+    userSockets.delete(userId);
+  });
+});
+
+server.on("upgrade", (request, socket, head) => {
+  const { query } = url.parse(request.url, true);
+  const token = query.token;
+  if (!token) {
+    socket.destroy();
+    return;
+  }
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET || "secret");
-    userSockets.set(decoded.id, socket.id);
-    socket.emit("connection", { status: "connected" });
-
-    socket.on("message.send", async (data) => {
-      const { to, payload } = data;
-      const msg = new Message({ from_user_id: decoded.id, to_user_id: to, payload });
-      await msg.save();
-      
-      const recipientSocketId = userSockets.get(to);
-      if (recipientSocketId) {
-        io.to(recipientSocketId).emit("message", {
-          id: msg._id,
-          from_user_id: decoded.id,
-          to_user_id: to,
-          payload,
-          created_at: msg.created_at
-        });
-      }
-      // Send back to sender for sync
-      socket.emit("message", {
-        id: msg._id,
-        from_user_id: decoded.id,
-        to_user_id: to,
-        payload,
-        created_at: msg.created_at
-      });
-    });
-
-    socket.on("disconnect", () => {
-      userSockets.delete(decoded.id);
+    wss.handleUpgrade(request, socket, head, (ws) => {
+      wss.emit("connection", ws, request, decoded.id);
     });
   } catch (err) {
-    socket.disconnect();
+    socket.destroy();
   }
 });
 

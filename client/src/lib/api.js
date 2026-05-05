@@ -1,10 +1,3 @@
-/**
- * WhisperBox API Client
- * 
- * Centralized HTTP client for the WhisperBox REST API.
- * Tokens stored in memory only (not localStorage).
- */
-
 const BASE_URL = 'http://localhost:5000';
 
 let accessToken = null;
@@ -65,7 +58,6 @@ export async function login(username, password) {
 export async function getMe() { return apiFetch('/auth/me'); }
 
 export async function refreshToken() {
-  // Simplified for now since we're using a local dev server
   return { access_token: accessToken };
 }
 

@@ -22,9 +22,15 @@ export default function LandingPage() {
       flexDirection: 'column',
       alignItems: 'center',
       justifyContent: 'center',
-      background: 'var(--bg-header)',
+      backgroundColor: '#121212',
+      backgroundImage: `
+        linear-gradient(rgba(48, 25, 52, 0.3) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(48, 25, 52, 0.3) 1px, transparent 1px)
+      `,
+      backgroundSize: '30px 30px',
       color: 'white',
-      textAlign: 'center'
+      textAlign: 'center',
+      overflow: 'hidden'
     }}>
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
@@ -39,56 +45,32 @@ export default function LandingPage() {
           marginTop: '20px',
           letterSpacing: '4px'
         }}>TU-Y-YO</h1>
-        <p style={{ opacity: 0.7, fontSize: '1.2rem', marginTop: '10px' }}>End-to-End Encrypted Messaging</p>
+        <p style={{ opacity: 0.7, fontSize: '1.2rem', marginTop: '10px' }}>Secure Messaging</p>
       </motion.div>
 
       <motion.div
         initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.5, duration: 0.5 }}
-        style={{ display: 'flex', gap: '20px' }}
       >
         <button 
           onClick={() => navigate('/login')}
           style={{
-            padding: '12px 30px',
+            padding: '16px 48px',
             borderRadius: 'var(--radius-md)',
             border: 'none',
             background: 'white',
-            color: 'var(--bg-header)',
-            fontWeight: '600',
-            fontSize: '1rem',
+            color: '#121212',
+            fontWeight: '700',
+            fontSize: '1.1rem',
             cursor: 'pointer',
-            transition: 'transform 0.2s'
+            transition: 'transform 0.2s',
+            boxShadow: '0 4px 15px rgba(48, 25, 52, 0.4)'
           }}
           onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'}
           onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
         >
-          Sign In
-        </button>
-        <button 
-          onClick={() => navigate('/login?mode=signup')}
-          style={{
-            padding: '12px 30px',
-            borderRadius: 'var(--radius-md)',
-            border: '2px solid white',
-            background: 'transparent',
-            color: 'white',
-            fontWeight: '600',
-            fontSize: '1rem',
-            cursor: 'pointer',
-            transition: 'all 0.2s'
-          }}
-          onMouseOver={(e) => {
-            e.target.style.background = 'white';
-            e.target.style.color = 'var(--bg-header)';
-          }}
-          onMouseOut={(e) => {
-            e.target.style.background = 'transparent';
-            e.target.style.color = 'white';
-          }}
-        >
-          Create Account
+          Get Started
         </button>
       </motion.div>
 

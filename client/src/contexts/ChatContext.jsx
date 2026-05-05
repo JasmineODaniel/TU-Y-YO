@@ -16,8 +16,8 @@ export function useChat() {
 export function ChatProvider({ children }) {
   const { user, cryptoReady } = useAuth();
   const [conversations, setConversations] = useState([]);
-  const [activeChat, setActiveChat] = useState(null); // { userId, displayName, username }
-  const [messages, setMessages] = useState([]); // decrypted messages for active chat
+  const [activeChat, setActiveChat] = useState(null);
+  const [messages, setMessages] = useState([]);
   const [loadingConvos, setLoadingConvos] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
@@ -58,7 +58,7 @@ export function ChatProvider({ children }) {
       const payloadString = JSON.stringify({ type: 'webrtc', subtype, ...data });
       const payload = await crypto.encryptMessage(payloadString, recipientPubKey, senderPubKey);
       wsManager.send('message.send', { to: toUserId, payload });
-    } catch (e) { console.error('Signaling error', e); }
+    } catch (e) { }
   };
 
   const handleWebRTCSignal = useCallback(async (senderId, payload) => {
@@ -71,7 +71,6 @@ export function ChatProvider({ children }) {
     }
   }, []);
 
-  // Connect WebSocket when crypto is ready
   useEffect(() => {
     if (!cryptoReady || !user) return;
     const token = api.getAccessToken();
@@ -79,7 +78,6 @@ export function ChatProvider({ children }) {
     return () => wsManager.disconnect();
   }, [cryptoReady, user]);
 
-  // Listen for WS connection status
   useEffect(() => {
     const unsub = wsManager.on('connection', (data) => {
       setWsStatus(data.status);
@@ -87,11 +85,9 @@ export function ChatProvider({ children }) {
     return unsub;
   }, []);
 
-  // Listen for incoming messages
   useEffect(() => {
     if (!cryptoReady || !user) return;
     const unsub = wsManager.on('message', async (msg) => {
-      // Decrypt and add to active chat if relevant
       try {
         const privateKey = await keystore.getPrivateKey();
         if (!privateKey) return;
@@ -104,10 +100,9 @@ export function ChatProvider({ children }) {
           parsedPayload = { type: 'text', content: decryptedText };
         }
 
-        // Intercept transient messages
         if (parsedPayload.type === 'typing') {
           if (!isSender) handleTypingSignal(msg.from_user_id, parsedPayload.isTyping);
-          return; // Do not add to chat history
+          return;
         }
         if (parsedPayload.type === 'webrtc') {
           handleWebRTCSignal(msg.from_user_id, parsedPayload);
@@ -125,7 +120,6 @@ export function ChatProvider({ children }) {
           delivered: msg.delivered,
         };
 
-        // Add to active chat if it's the current conversation
         const partnerId = isSender ? msg.to_user_id : msg.from_user_id;
         setActiveChat(prev => {
           if (prev && prev.userId === partnerId) {
@@ -137,28 +131,22 @@ export function ChatProvider({ children }) {
           return prev;
         });
 
-        // Update conversations list
         loadConversations();
-      } catch (err) {
-        console.error('Failed to decrypt incoming message:', err);
-      }
+      } catch (err) { }
     });
     return unsub;
-  }, [cryptoReady, user]);
+  }, [cryptoReady, user, handleTypingSignal, handleWebRTCSignal]);
 
   const loadConversations = useCallback(async () => {
     setLoadingConvos(true);
     try {
       const convos = await api.getConversations();
       setConversations(convos);
-    } catch (err) {
-      console.error('Failed to load conversations:', err);
-    } finally {
+    } catch (err) { } finally {
       setLoadingConvos(false);
     }
   }, []);
 
-  // Load conversations on mount
   useEffect(() => {
     if (cryptoReady && user) loadConversations();
   }, [cryptoReady, user, loadConversations]);
@@ -195,7 +183,7 @@ export function ChatProvider({ children }) {
           }
 
           if (parsedPayload.type === 'typing' || parsedPayload.type === 'webrtc') {
-            continue; // Skip transient messages in history
+            continue;
           }
 
           decrypted.push({
@@ -213,7 +201,7 @@ export function ChatProvider({ children }) {
             id: msg.id,
             fromUserId: msg.from_user_id,
             toUserId: msg.to_user_id,
-            text: '🔒 Unable to decrypt this message',
+            text: '🔒 Unable to decrypt',
             createdAt: msg.created_at,
             delivered: msg.delivered,
             decryptionFailed: true,
@@ -222,9 +210,7 @@ export function ChatProvider({ children }) {
       }
       setMessages(decrypted);
       if (rawMsgs.length < 50) hasMoreMessages.current = false;
-    } catch (err) {
-      console.error('Failed to load messages:', err);
-    } finally {
+    } catch (err) { } finally {
       setLoadingMessages(false);
     }
   }, [user]);
@@ -285,15 +271,13 @@ export function ChatProvider({ children }) {
         : JSON.stringify(payloadContent);
 
       const payload = await crypto.encryptMessage(payloadString, recipientPubKey, senderPubKey);
-      // Try WebSocket first, fallback to REST
       const sent = wsManager.send('message.send', { to: activeChat.userId, payload });
       let msgResponse;
       if (!sent) {
         msgResponse = await api.sendMessage(activeChat.userId, payload);
       }
-      // Add to local messages immediately
       const newMsg = {
-        id: msgResponse?.id || crypto.arrayBufferToBase64(crypto.base64ToArrayBuffer(btoa(Date.now().toString()))),
+        id: msgResponse?.id || Date.now().toString(),
         fromUserId: user.id,
         toUserId: activeChat.userId,
         type: typeof payloadContent === 'string' ? 'text' : payloadContent.type,
@@ -305,7 +289,6 @@ export function ChatProvider({ children }) {
       setMessages(prev => [...prev, newMsg]);
       loadConversations();
     } catch (err) {
-      console.error('Failed to send message:', err);
       throw err;
     } finally {
       setSendingMessage(false);
@@ -313,16 +296,14 @@ export function ChatProvider({ children }) {
   }, [activeChat, user, getRecipientPublicKey, loadConversations]);
 
   const sendTypingSignal = useCallback(async (isTyping) => {
-    if (!activeChat || wsStatus !== 'connected') return; // Only send if WS is connected
+    if (!activeChat || wsStatus !== 'connected') return;
     try {
       const recipientPubKey = await getRecipientPublicKey(activeChat.userId);
       const senderPubKey = await keystore.getPublicKey();
       const payloadString = JSON.stringify({ type: 'typing', isTyping });
       const payload = await crypto.encryptMessage(payloadString, recipientPubKey, senderPubKey);
       wsManager.send('message.send', { to: activeChat.userId, payload });
-    } catch (err) {
-      // ignore silently
-    }
+    } catch (err) { }
   }, [activeChat, getRecipientPublicKey, wsStatus]);
 
   const setupPeerConnection = (partnerId) => {
@@ -347,9 +328,7 @@ export function ChatProvider({ children }) {
       await pc.setLocalDescription(offer);
       sendWebRTCSignal(partnerId, 'offer', { sdp: offer });
       setActiveCall({ status: 'connecting', localStream: stream, remoteStream: null });
-    } catch (err) {
-      console.error('Failed to initiate call:', err);
-    }
+    } catch (err) { }
   };
 
   const acceptIncomingCall = async () => {
@@ -365,9 +344,7 @@ export function ChatProvider({ children }) {
       sendWebRTCSignal(incomingCall.callerId, 'answer', { sdp: answer });
       setActiveCall({ status: 'connected', localStream: stream, remoteStream: null });
       setIncomingCall(null);
-    } catch (err) {
-      console.error('Failed to accept call:', err);
-    }
+    } catch (err) { }
   };
 
   const rejectIncomingCall = () => setIncomingCall(null);

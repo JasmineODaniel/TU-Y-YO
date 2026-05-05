@@ -18,17 +18,14 @@ export function AuthProvider({ children }) {
   const [cryptoReady, setCryptoReady] = useState(false);
   const refreshTimerRef = useRef(null);
 
-  // Set up token refresh failure handler
   useEffect(() => {
     api.setOnTokenRefreshFailed(() => {
       handleLogout();
     });
   }, []);
 
-  // Schedule auto token refresh
   const scheduleRefresh = useCallback((expiresIn) => {
     if (refreshTimerRef.current) clearInterval(refreshTimerRef.current);
-    // Refresh every (expiresIn - 60) seconds
     const interval = Math.max((expiresIn - 60) * 1000, 60000);
     refreshTimerRef.current = setInterval(async () => {
       try { await api.refreshToken(); } catch { handleLogout(); }
@@ -39,17 +36,11 @@ export function AuthProvider({ children }) {
     setLoading(true);
     setError(null);
     try {
-      // 1. Generate RSA-OAEP keypair
       const keyPair = await crypto.generateKeyPair();
-      // 2. Generate PBKDF2 salt
       const salt = crypto.generatePBKDF2Salt();
-      // 3. Derive wrapping key from password
       const wrappingKey = await crypto.deriveWrappingKey(password, salt);
-      // 4. Wrap private key
       const wrappedPrivateKey = await crypto.wrapPrivateKey(keyPair.privateKey, wrappingKey);
-      // 5. Export public key
       const publicKey = await crypto.exportPublicKey(keyPair.publicKey);
-      // 6. Register with API
       const result = await api.register({
         username,
         display_name: displayName,
@@ -58,8 +49,6 @@ export function AuthProvider({ children }) {
         wrapped_private_key: wrappedPrivateKey,
         pbkdf2_salt: salt,
       });
-      // 7. Store keys in IndexedDB
-      // For the private key after registration, we need to create a non-extractable version
       const unwrapped = await crypto.unwrapPrivateKey(wrappedPrivateKey, wrappingKey);
       await keystore.storePrivateKey(unwrapped);
       await keystore.storePublicKey(keyPair.publicKey);
@@ -79,16 +68,11 @@ export function AuthProvider({ children }) {
     setLoading(true);
     setError(null);
     try {
-      // 1. Login to get tokens + user profile with key material
       const result = await api.login(username, password);
       const { wrapped_private_key, pbkdf2_salt, public_key } = result.user;
-      // 2. Derive wrapping key from password + stored salt
       const wrappingKey = await crypto.deriveWrappingKey(password, pbkdf2_salt);
-      // 3. Unwrap private key
       const privateKey = await crypto.unwrapPrivateKey(wrapped_private_key, wrappingKey);
-      // 4. Import public key
       const pubKey = await crypto.importPublicKey(public_key);
-      // 5. Store keys in IndexedDB
       await keystore.storePrivateKey(privateKey);
       await keystore.storePublicKey(pubKey);
       setUser(result.user);
@@ -106,7 +90,7 @@ export function AuthProvider({ children }) {
   const handleLogout = useCallback(async () => {
     try {
       await api.logout();
-    } catch { /* ignore */ }
+    } catch { }
     await keystore.clearKeys();
     setUser(null);
     setCryptoReady(false);
@@ -135,7 +119,7 @@ export function AuthProvider({ children }) {
             setUser(prev => ({ ...prev, profilePic: base64 }));
             localStorage.setItem(`profile_pic_${user.id}`, base64);
           } catch (err) {
-            console.error('Failed to upload profile picture', err);
+            console.error('Profile pic upload error', err);
           }
         }
       }

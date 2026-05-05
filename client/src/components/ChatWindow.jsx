@@ -20,7 +20,6 @@ export default function ChatWindow() {
   const mediaRecorderRef = useRef(null);
   const audioChunksRef = useRef([]);
 
-  // Auto-scroll to bottom on new messages
   useEffect(() => {
     if (messages.length > prevMessagesLength.current) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -28,7 +27,6 @@ export default function ChatWindow() {
     prevMessagesLength.current = messages.length;
   }, [messages]);
 
-  // Handle click outside emoji picker
   useEffect(() => {
     function handleClickOutside(event) {
       if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
@@ -64,7 +62,7 @@ export default function ChatWindow() {
       await sendEncryptedMessage(text);
     } catch (err) {
       setSendError('Failed to send. ' + err.message);
-      setInputText(text); // restore text
+      setInputText(text);
     }
   };
 
@@ -123,7 +121,6 @@ export default function ChatWindow() {
 
   return (
     <div className="chat-window" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-primary)' }}>
-      {/* WhatsApp Header */}
       <div className="chat-header" style={{ 
         background: 'var(--bg-header)', 
         padding: '10px 16px', 
@@ -162,7 +159,6 @@ export default function ChatWindow() {
         </div>
       </div>
 
-      {/* Messages */}
       <div className="messages-container" ref={messagesContainerRef} style={{ 
         flex: 1, 
         overflowY: 'auto', 
@@ -184,7 +180,7 @@ export default function ChatWindow() {
             <div style={{ color: 'var(--accent)', marginBottom: '10px' }}>
               <Lock size={24} style={{ margin: '0 auto' }} />
             </div>
-            <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Messages are end-to-end encrypted. No one outside of this chat, not even TU-Y-YO, can read them.</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Messages are end-to-end encrypted.</p>
           </div>
         )}
 
@@ -198,7 +194,6 @@ export default function ChatWindow() {
         <div ref={messagesEndRef} />
       </div>
 
-      {/* WhatsApp Input Bar */}
       <div className="chat-footer" style={{ background: 'var(--bg-header)', padding: '10px 16px', position: 'relative' }}>
         {showEmojiPicker && (
           <div ref={emojiPickerRef} style={{ position: 'absolute', bottom: '100%', left: '16px', zIndex: 1000 }}>
@@ -218,11 +213,10 @@ export default function ChatWindow() {
               type="button"
               className="icon-btn"
               onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-              style={{ color: 'var(--text-secondary)' }}
             >
               <Smile size={24} />
             </button>
-            <button type="button" className="icon-btn" style={{ color: 'var(--text-secondary)' }}>
+            <button type="button" className="icon-btn">
               <Paperclip size={24} />
             </button>
           </div>
@@ -253,7 +247,6 @@ export default function ChatWindow() {
             type="button"
             className={`icon-btn ${isRecording ? 'recording' : ''}`}
             onClick={isRecording ? stopRecording : startRecording}
-            style={{ color: isRecording ? 'var(--danger)' : 'var(--text-secondary)' }}
           >
             <Mic size={24} />
           </button>
@@ -263,7 +256,7 @@ export default function ChatWindow() {
               type="submit"
               className="icon-btn"
               disabled={sendingMessage}
-              style={{ color: 'var(--accent)', background: 'white', borderRadius: '50%', padding: '8px' }}
+              style={{ background: 'white', borderRadius: '50%', padding: '8px' }}
             >
               {sendingMessage ? <div className="spinner spinner-sm" /> : <Send size={20} />}
             </button>
