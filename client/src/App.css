@@ -531,6 +531,52 @@
   z-index: 1;
 }
 
+/* ─── EMPTY CHAT BASKET ANIMATION ────────────────────── */
+.network-basket {
+  width: 100px;
+  height: 100px;
+  position: relative;
+  margin: 0 auto;
+  perspective: 800px;
+  animation: floatBasket 4s ease-in-out infinite;
+}
+
+.basket-core {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 40px; height: 40px;
+  background: var(--accent);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 20px var(--accent);
+  opacity: 0.8;
+}
+
+.basket-ring {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  border: 1px solid var(--accent);
+  border-radius: 50%;
+  box-sizing: border-box;
+  animation: rotateRing 8s linear infinite;
+  opacity: 0.6;
+}
+
+.basket-ring:nth-child(1) { transform: rotateX(70deg) rotateY(0deg); }
+.basket-ring:nth-child(2) { transform: rotateX(70deg) rotateY(60deg); animation-delay: -2.6s; }
+.basket-ring:nth-child(3) { transform: rotateX(70deg) rotateY(120deg); animation-delay: -5.3s; }
+
+@keyframes rotateRing {
+  0% { transform: rotateX(70deg) rotateZ(0deg); }
+  100% { transform: rotateX(70deg) rotateZ(360deg); }
+}
+
+@keyframes floatBasket {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
 .empty-chat {
   flex: 1;
   display: flex;

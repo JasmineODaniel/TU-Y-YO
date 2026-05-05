@@ -60,11 +60,7 @@ export default function ConversationList() {
           title="New conversation"
           id="new-chat-btn"
         >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-            <line x1="12" y1="8" x2="12" y2="16" />
-            <line x1="8" y1="12" x2="16" y2="12" />
-          </svg>
+          <i className="fa-solid fa-pen-to-square"></i>
         </button>
       </div>
 
@@ -81,9 +77,7 @@ export default function ConversationList() {
 
       {!loadingConvos && conversations.length === 0 && (
         <div className="convo-empty">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" opacity="0.4">
-            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-          </svg>
+          <i className="fa-regular fa-comments fa-3x" style={{ opacity: 0.4 }}></i>
           <p>No conversations yet</p>
           <button className="link-btn" onClick={() => setShowSearch(true)}>Start a new chat</button>
         </div>
@@ -107,10 +101,7 @@ export default function ConversationList() {
               </div>
               <div className="convo-bottom">
                 <span className="convo-username">@{convo.username}</span>
-                <svg className="convo-lock" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" opacity="0.4">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
+                <i className="fa-solid fa-lock" style={{ opacity: 0.4, fontSize: '10px' }}></i>
               </div>
             </div>
           </button>
