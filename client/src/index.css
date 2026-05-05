@@ -6,38 +6,38 @@
 
 :root {
   /* ─── Colors ─── */
-  --bg-primary: #EEEDEA;
-  --bg-secondary: rgba(238, 237, 234, 0.4);
-  --bg-tertiary: rgba(255, 255, 255, 0.5);
-  --bg-elevated: rgba(255, 255, 255, 0.6);
-  --bg-hover: rgba(168, 124, 98, 0.1);
-  --bg-active: rgba(168, 124, 98, 0.2);
+  --bg-primary: #121212;
+  --bg-secondary: rgba(18, 18, 18, 0.4);
+  --bg-tertiary: rgba(168, 124, 98, 0.1);
+  --bg-elevated: #1e1e1e;
+  --bg-hover: rgba(168, 124, 98, 0.15);
+  --bg-active: rgba(168, 124, 98, 0.25);
 
-  --surface-glass: rgba(255, 255, 255, 0.35);
-  --surface-glass-hover: rgba(255, 255, 255, 0.5);
+  --surface-glass: rgba(30, 30, 30, 0.6);
+  --surface-glass-hover: rgba(40, 40, 40, 0.7);
 
-  --text-primary: #2A2A2A;
-  --text-secondary: #5C5C5C;
-  --text-tertiary: #808080;
-  --text-inverse: #EEEDEA;
+  --text-primary: #EEEDEA;
+  --text-secondary: #A0A0A0;
+  --text-tertiary: #606060;
+  --text-inverse: #121212;
 
   --accent: #A87C62;
-  --accent-hover: #8F6953;
+  --accent-hover: #C29A83;
   --accent-dim: rgba(168, 124, 98, 0.15);
-  --accent-gradient: linear-gradient(135deg, #A87C62 0%, #8F6953 100%);
+  --accent-gradient: linear-gradient(135deg, #A87C62 0%, #C29A83 100%);
 
   --bubble-sent: #A87C62;
-  --bubble-sent-text: #EEEDEA;
-  --bubble-received: rgba(255, 255, 255, 0.6);
-  --bubble-received-text: #2A2A2A;
+  --bubble-sent-text: #121212;
+  --bubble-received: rgba(168, 124, 98, 0.15);
+  --bubble-received-text: #EEEDEA;
 
   --danger: #d63031;
   --danger-dim: rgba(214, 48, 49, 0.15);
   --warning: #e17055;
 
-  --border: rgba(168, 124, 98, 0.2);
-  --border-light: rgba(168, 124, 98, 0.1);
-  --glass-border: 1px solid rgba(255, 255, 255, 0.6);
+  --border: rgba(168, 124, 98, 0.3);
+  --border-light: rgba(168, 124, 98, 0.15);
+  --glass-border: 1px solid rgba(168, 124, 98, 0.3);
 
   /* ─── Typography ─── */
   --font: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
