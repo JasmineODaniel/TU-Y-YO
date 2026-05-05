@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useChat } from '../contexts/ChatContext';
+import { Video, Phone, MoreVertical, Search, Smile, Paperclip, Mic, Send, ChevronLeft, Lock } from 'lucide-react';
+import EmojiPicker from 'emoji-picker-react';
 import MessageBubble from './MessageBubble';
 
 export default function ChatWindow() {
@@ -9,8 +11,10 @@ export default function ChatWindow() {
   const [inputText, setInputText] = useState('');
   const [sendError, setSendError] = useState('');
   const [isRecording, setIsRecording] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
+  const emojiPickerRef = useRef(null);
   const prevMessagesLength = useRef(0);
   const typingTimeoutRef = useRef(null);
   const mediaRecorderRef = useRef(null);
@@ -24,6 +28,17 @@ export default function ChatWindow() {
     prevMessagesLength.current = messages.length;
   }, [messages]);
 
+  // Handle click outside emoji picker
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (emojiPickerRef.current && !emojiPickerRef.current.contains(event.target)) {
+        setShowEmojiPicker(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
   const handleInputChange = (e) => {
     setInputText(e.target.value);
     sendTypingSignal(true);
@@ -33,12 +48,17 @@ export default function ChatWindow() {
     }, 2000);
   };
 
+  const onEmojiClick = (emojiData) => {
+    setInputText(prev => prev + emojiData.emoji);
+  };
+
   const handleSend = async (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (!inputText.trim() || sendingMessage) return;
     const text = inputText.trim();
     setInputText('');
     setSendError('');
+    setShowEmojiPicker(false);
     sendTypingSignal(false);
     try {
       await sendEncryptedMessage(text);
@@ -102,47 +122,69 @@ export default function ChatWindow() {
   if (!activeChat) return null;
 
   return (
-    <div className="chat-window" id="chat-window">
-      {/* Chat Header */}
-      <div className="chat-header">
-        <button className="back-btn mobile-only" onClick={() => setActiveChat(null)} title="Back">
-          <i className="fa-solid fa-chevron-left"></i>
+    <div className="chat-window" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-primary)' }}>
+      {/* WhatsApp Header */}
+      <div className="chat-header" style={{ 
+        background: 'var(--bg-header)', 
+        padding: '10px 16px', 
+        display: 'flex', 
+        alignItems: 'center', 
+        height: '60px',
+        color: 'white'
+      }}>
+        <button className="back-btn mobile-only" onClick={() => setActiveChat(null)} style={{ background: 'none', border: 'none', color: 'white', marginRight: '10px' }}>
+          <ChevronLeft size={24} />
         </button>
         <div className="avatar avatar-sm" style={{
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+          background: activeChat.profile_pic ? `url(${activeChat.profile_pic}) center/cover` : 'var(--accent-gradient)',
+          width: '40px',
+          height: '40px',
+          marginRight: '12px'
         }}>
-          {getInitials(activeChat.displayName)}
+          {!activeChat.profile_pic && getInitials(activeChat.displayName)}
         </div>
-        <div className="chat-header-info">
-          <span className="chat-header-name">{activeChat.displayName}</span>
-          <span className="chat-header-username">@{activeChat.username}</span>
-        </div>
-        <div className="chat-header-actions" style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <button className="btn-icon" onClick={() => initiateCall(activeChat.userId)} title="Start E2E Video Call">
-            <i className="fa-solid fa-video"></i>
-          </button>
-          <div className="chat-header-badge">
-            <i className="fa-solid fa-lock"></i>
-            <span>Encrypted</span>
+        <div className="chat-header-info" style={{ flex: 1 }}>
+          <div style={{ fontWeight: '500', fontSize: '16px' }}>{activeChat.displayName}</div>
+          <div style={{ fontSize: '12px', opacity: 0.8 }}>
+            {activeTypers && activeTypers.has(activeChat.userId) ? 'typing...' : `@${activeChat.username}`}
           </div>
+        </div>
+        <div className="chat-header-actions" style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+          <button className="icon-btn" onClick={() => initiateCall(activeChat.userId)} title="Video Call" style={{ color: 'white' }}>
+            <Video size={20} />
+          </button>
+          <button className="icon-btn" title="Voice Call" style={{ color: 'white' }}>
+            <Phone size={20} />
+          </button>
+          <button className="icon-btn" title="More" style={{ color: 'white' }}>
+            <MoreVertical size={20} />
+          </button>
         </div>
       </div>
 
       {/* Messages */}
-      <div className="messages-container" ref={messagesContainerRef} id="messages-container">
+      <div className="messages-container" ref={messagesContainerRef} style={{ 
+        flex: 1, 
+        overflowY: 'auto', 
+        padding: '20px', 
+        background: 'var(--bg-primary)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: '8px'
+      }}>
         {loadingMessages && (
-          <div className="messages-loading">
-            <div className="spinner" />
+          <div style={{ textAlign: 'center', padding: '20px', opacity: 0.6 }}>
+            <div className="spinner" style={{ margin: '0 auto 10px' }} />
             <span>Decrypting messages...</span>
           </div>
         )}
 
         {!loadingMessages && messages.length === 0 && (
-          <div className="messages-empty">
-            <div className="messages-empty-icon">
-              <i className="fa-solid fa-lock fa-3x" style={{ opacity: 0.3 }}></i>
+          <div style={{ textAlign: 'center', margin: '40px auto', maxWidth: '300px', background: 'var(--bg-secondary)', padding: '15px', borderRadius: 'var(--radius-md)' }}>
+            <div style={{ color: 'var(--accent)', marginBottom: '10px' }}>
+              <Lock size={24} style={{ margin: '0 auto' }} />
             </div>
-            <p>Messages are end-to-end encrypted. Send your first secure message to <strong>{activeChat.displayName}</strong>.</p>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Messages are end-to-end encrypted. No one outside of this chat, not even TU-Y-YO, can read them.</p>
           </div>
         )}
 
@@ -153,66 +195,81 @@ export default function ChatWindow() {
             isSent={msg.fromUserId === user.id}
           />
         ))}
-        {activeTypers && activeTypers.has(activeChat.userId) && (
-          <div className="typing-indicator-bubble">
-            <div className="typing-dot"></div>
-            <div className="typing-dot"></div>
-            <div className="typing-dot"></div>
-          </div>
-        )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
-      {sendError && (
-        <div className="send-error">
-          <i className="fa-solid fa-circle-exclamation"></i>
-          {sendError}
-        </div>
-      )}
-      <form className="message-input-bar" onSubmit={handleSend} id="message-form">
-        <button
-          type="button"
-          className={`record-btn ${isRecording ? 'recording' : ''}`}
-          onClick={isRecording ? stopRecording : startRecording}
-          title={isRecording ? "Stop & Send Audio" : "Record Voice Message"}
-        >
-          {isRecording ? (
-            <i className="fa-solid fa-square" style={{ color: 'var(--danger)' }}></i>
-          ) : (
-            <i className="fa-solid fa-microphone"></i>
-          )}
-        </button>
-        {isRecording ? (
-          <div className="recording-status">Recording audio... Click stop to send.</div>
-        ) : (
-          <div className="message-input-wrapper">
+      {/* WhatsApp Input Bar */}
+      <div className="chat-footer" style={{ background: 'var(--bg-header)', padding: '10px 16px', position: 'relative' }}>
+        {showEmojiPicker && (
+          <div ref={emojiPickerRef} style={{ position: 'absolute', bottom: '100%', left: '16px', zIndex: 1000 }}>
+            <EmojiPicker onEmojiClick={onEmojiClick} theme="dark" width={300} height={400} />
+          </div>
+        )}
+        
+        {sendError && (
+          <div style={{ color: 'var(--danger)', fontSize: '12px', marginBottom: '8px', textAlign: 'center' }}>
+            {sendError}
+          </div>
+        )}
+
+        <form className="message-input-bar" onSubmit={handleSend} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ display: 'flex', gap: '5px' }}>
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
+              style={{ color: 'var(--text-secondary)' }}
+            >
+              <Smile size={24} />
+            </button>
+            <button type="button" className="icon-btn" style={{ color: 'var(--text-secondary)' }}>
+              <Paperclip size={24} />
+            </button>
+          </div>
+
+          <div style={{ flex: 1, background: 'var(--bg-secondary)', borderRadius: '20px', padding: '5px 15px', display: 'flex', alignItems: 'center' }}>
             <textarea
               value={inputText}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
-              placeholder="Type a message..."
-              className="message-input"
-              id="message-input"
+              placeholder="Type a message"
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-primary)',
+                flex: 1,
+                fontSize: '15px',
+                outline: 'none',
+                resize: 'none',
+                maxHeight: '100px',
+                padding: '8px 0'
+              }}
               rows={1}
               disabled={sendingMessage}
             />
           </div>
-        )}
-        <button
-          type="submit"
-          className="send-btn"
-          disabled={!inputText.trim() || sendingMessage}
-          id="send-btn"
-          title="Send encrypted message"
-        >
-          {sendingMessage ? (
-            <div className="spinner spinner-sm" />
-          ) : (
-            <i className="fa-regular fa-paper-plane"></i>
+
+          <button
+            type="button"
+            className={`icon-btn ${isRecording ? 'recording' : ''}`}
+            onClick={isRecording ? stopRecording : startRecording}
+            style={{ color: isRecording ? 'var(--danger)' : 'var(--text-secondary)' }}
+          >
+            <Mic size={24} />
+          </button>
+
+          {inputText.trim() && (
+            <button
+              type="submit"
+              className="icon-btn"
+              disabled={sendingMessage}
+              style={{ color: 'var(--accent)', background: 'white', borderRadius: '50%', padding: '8px' }}
+            >
+              {sendingMessage ? <div className="spinner spinner-sm" /> : <Send size={20} />}
+            </button>
           )}
-        </button>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }
