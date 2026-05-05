@@ -27,8 +27,8 @@ export default function LoginPage() {
         return;
       }
       const usernameRegex = /^[a-zA-Z0-9_-]+$/;
-      if (!usernameRegex.test(username)) {
-        setLocalError('Username may only contain letters, digits, _ and -');
+      if (!usernameRegex.test(username.trim())) {
+        setLocalError('Username may only contain letters, digits, _ and - (no spaces or @ allowed)');
         return;
       }
       if (password.length < 8) {
