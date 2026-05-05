@@ -1,83 +1,71 @@
-/**
- * WhisperBox WebSocket Manager
- * 
- * Manages real-time WebSocket connection with auto-reconnect.
- * Handles message.receive events for real-time message delivery.
- */
+const WS_URL = 'ws://localhost:5000/ws';
 
-const WS_BASE = 'wss://whisperbox.koyeb.app/ws';
-
-export class WebSocketManager {
+class WebSocketManager {
   constructor() {
-    this.ws = null;
     this.token = null;
-    this.listeners = new Map();
+    this.ws = null;
     this.reconnectAttempts = 0;
-    this.maxReconnectAttempts = 10;
-    this.reconnectTimer = null;
-    this.isIntentionallyClosed = false;
+    this.maxReconnectAttempts = 5;
+    this.reconnectTimeout = null;
+    this.isClosing = false;
+    this.listeners = new Map();
+  }
+
+  on(event, callback) {
+    if (!this.listeners.has(event)) this.listeners.set(event, new Set());
+    this.listeners.get(event).add(callback);
+    return () => this.listeners.get(event).delete(callback);
+  }
+
+  _emit(event, data) {
+    if (this.listeners.has(event)) {
+      this.listeners.get(event).forEach(cb => cb(data));
+    }
   }
 
   connect(token) {
     this.token = token;
-    this.isIntentionallyClosed = false;
+    this.isClosing = false;
     this._doConnect();
   }
 
   _doConnect() {
     if (!this.token) return;
-    try {
-      this.ws = new WebSocket(`${WS_BASE}?token=${this.token}`);
-    } catch {
-      this._scheduleReconnect();
-      return;
+    if (this.ws) {
+      this.ws.onclose = null;
+      this.ws.close();
     }
-
-    this.ws.onopen = () => {
-      this.reconnectAttempts = 0;
-      this._emit('connection', { status: 'connected' });
-    };
-
-    this.ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type === 'message.receive') {
+    this._emit('connection', { status: 'connecting' });
+    try {
+      this.ws = new WebSocket(`${WS_URL}?token=${this.token}`);
+      this.ws.onopen = () => {
+        this.reconnectAttempts = 0;
+        this._emit('connection', { status: 'connected' });
+      };
+      this.ws.onmessage = (e) => {
+        try {
+          const data = JSON.parse(e.data);
           this._emit('message', data.data || data);
-        } else if (data.type === 'messages.pending') {
-          // Flush of offline messages
-          const messages = data.data || data.messages || [];
-          if (Array.isArray(messages)) {
-            messages.forEach(msg => this._emit('message', msg));
-          }
-        } else {
-          this._emit(data.type, data);
+        } catch (err) {}
+      };
+      this.ws.onclose = () => {
+        if (!this.isClosing) {
+          this._emit('connection', { status: 'disconnected' });
+          this._reconnect();
         }
-      } catch {
-        // non-JSON message, ignore
-      }
-    };
-
-    this.ws.onclose = () => {
-      this._emit('connection', { status: 'disconnected' });
-      if (!this.isIntentionallyClosed) {
-        this._scheduleReconnect();
-      }
-    };
-
-    this.ws.onerror = () => {
-      // onclose will fire after this
-    };
+      };
+      this.ws.onerror = () => this._emit('connection', { status: 'error' });
+    } catch (err) {
+      this._reconnect();
+    }
   }
 
-  _scheduleReconnect() {
-    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-      this._emit('connection', { status: 'failed' });
-      return;
+  _reconnect() {
+    if (this.reconnectAttempts < this.maxReconnectAttempts) {
+      this.reconnectAttempts++;
+      const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
+      this.reconnectTimeout = setTimeout(() => this._doConnect(), delay);
     }
-    const delay = Math.min(1000 * Math.pow(2, this.reconnectAttempts), 30000);
-    this.reconnectAttempts++;
-    this._emit('connection', { status: 'reconnecting', attempt: this.reconnectAttempts });
-    this.reconnectTimer = setTimeout(() => this._doConnect(), delay);
   }
 
   send(type, data) {
@@ -88,42 +76,12 @@ export class WebSocketManager {
     return false;
   }
 
-  updateToken(newToken) {
-    this.token = newToken;
-    // Reconnect with new token
-    if (this.ws) {
-      this.isIntentionallyClosed = true;
-      this.ws.close();
-      this.isIntentionallyClosed = false;
-      this._doConnect();
-    }
-  }
-
-  on(event, callback) {
-    if (!this.listeners.has(event)) {
-      this.listeners.set(event, new Set());
-    }
-    this.listeners.get(event).add(callback);
-    return () => this.listeners.get(event)?.delete(callback);
-  }
-
-  _emit(event, data) {
-    const cbs = this.listeners.get(event);
-    if (cbs) cbs.forEach(cb => cb(data));
-  }
-
   disconnect() {
-    this.isIntentionallyClosed = true;
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
-    }
-    if (this.ws) {
-      this.ws.close();
-      this.ws = null;
-    }
+    this.isClosing = true;
+    if (this.reconnectTimeout) clearTimeout(this.reconnectTimeout);
+    if (this.ws) this.ws.close();
+    this.ws = null;
   }
 }
 
-// Singleton instance
 export const wsManager = new WebSocketManager();

@@ -1,44 +1,39 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ChatProvider } from './contexts/ChatContext';
+import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import ChatPage from './pages/ChatPage';
 import './App.css';
 
-function ProtectedRoute({ children }) {
+function PrivateRoute({ children }) {
   const { user, cryptoReady } = useAuth();
-  if (!user || !cryptoReady) return <Navigate to="/login" replace />;
-  return children;
-}
-
-function PublicRoute({ children }) {
-  const { user, cryptoReady } = useAuth();
-  if (user && cryptoReady) return <Navigate to="/chat" replace />;
+  if (!user) return <Navigate to="/" />;
+  if (!cryptoReady) return <Navigate to="/login" />;
   return children;
 }
 
 function AppRoutes() {
+  const { user } = useAuth();
   return (
     <Routes>
-      <Route path="/login" element={
-        <PublicRoute><LoginPage /></PublicRoute>
-      } />
+      <Route path="/" element={user ? <Navigate to="/chat" /> : <LandingPage />} />
+      <Route path="/login" element={user ? <Navigate to="/chat" /> : <LoginPage />} />
       <Route path="/chat" element={
-        <ProtectedRoute>
-          <ChatProvider><ChatPage /></ChatProvider>
-        </ProtectedRoute>
+        <PrivateRoute>
+          <ChatProvider>
+            <ChatPage />
+          </ChatProvider>
+        </PrivateRoute>
       } />
-      <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   );
 }
 
-export default function App() {
+function App() {
   return (
-    <BrowserRouter>
-      <AuthProvider>
+    <AuthProvider>
+      <Router>
         <AppRoutes />
-      </AuthProvider>
-    </BrowserRouter>
   );
 }

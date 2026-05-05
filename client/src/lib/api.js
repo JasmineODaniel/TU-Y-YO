@@ -1,11 +1,4 @@
-/**
- * WhisperBox API Client
- * 
- * Centralized HTTP client for the WhisperBox REST API.
- * Tokens stored in memory only (not localStorage).
- */
-
-const BASE_URL = 'https://whisperbox.koyeb.app';
+const BASE_URL = 'http://localhost:5000';
 
 let accessToken = null;
 let refreshTokenValue = null;
@@ -33,23 +26,12 @@ export function setOnTokenRefreshFailed(callback) {
 
 async function apiFetch(path, options = {}) {
   const url = `${BASE_URL}${path}`;
-  if (accessToken && tokenExpiresAt && Date.now() > tokenExpiresAt && refreshTokenValue) {
-    try { await doRefreshToken(); } catch { /* will get 401 below */ }
-  }
   const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
   if (accessToken && !options.noAuth) {
     headers['Authorization'] = `Bearer ${accessToken}`;
   }
   const response = await fetch(url, { ...options, headers });
-  if (response.status === 401 && refreshTokenValue && !options._isRetry) {
-    try {
-      await doRefreshToken();
-      return apiFetch(path, { ...options, _isRetry: true });
-    } catch {
-      if (onTokenRefreshFailed) onTokenRefreshFailed();
-      throw new Error('Session expired. Please log in again.');
-    }
-  }
+  
   if (!response.ok) {
     let msg = `API Error: ${response.status}`;
     try {
@@ -75,19 +57,12 @@ export async function login(username, password) {
 
 export async function getMe() { return apiFetch('/auth/me'); }
 
-async function doRefreshToken() {
-  if (!refreshTokenValue) throw new Error('No refresh token');
-  const r = await apiFetch('/auth/refresh', { method: 'POST', body: JSON.stringify({ refresh_token: refreshTokenValue }), noAuth: true });
-  accessToken = r.access_token;
-  tokenExpiresAt = Date.now() + (r.expires_in * 1000) - 30000;
-  return r;
+export async function refreshToken() {
+  return { access_token: accessToken };
 }
 
-export { doRefreshToken as refreshToken };
-
 export async function logout() {
-  if (!refreshTokenValue) return;
-  try { await apiFetch('/auth/logout', { method: 'POST', body: JSON.stringify({ refresh_token: refreshTokenValue }) }); } finally { clearTokens(); }
+  clearTokens();
 }
 
 export async function searchUsers(query) {
@@ -96,6 +71,10 @@ export async function searchUsers(query) {
 
 export async function getUserPublicKey(userId) {
   return apiFetch(`/users/${userId}/public-key`);
+}
+
+export async function updateProfilePic(profilePic) {
+  return apiFetch('/users/profile-pic', { method: 'POST', body: JSON.stringify({ profilePic }) });
 }
 
 export async function getConversations() {
