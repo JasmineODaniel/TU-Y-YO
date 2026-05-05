@@ -8,7 +8,13 @@ export default function MessageBubble({ message, isSent }) {
   return (
     <div className={`message-bubble-wrapper ${isSent ? 'sent' : 'received'}`}>
       <div className={`message-bubble ${isSent ? 'bubble-sent' : 'bubble-received'} ${message.decryptionFailed ? 'bubble-error' : ''}`}>
-        <div className="bubble-text">{message.text}</div>
+        {message.type === 'audio' ? (
+          <div className="bubble-audio">
+            <audio controls src={message.content} preload="metadata" />
+          </div>
+        ) : (
+          <div className="bubble-text">{message.content || message.text}</div>
+        )}
         <div className="bubble-meta">
           <span className="bubble-time">{formatTime(message.createdAt)}</span>
           {!message.decryptionFailed && (

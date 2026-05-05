@@ -22,8 +22,54 @@ export function ChatProvider({ children }) {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
   const [wsStatus, setWsStatus] = useState('disconnected');
+  const [activeTypers, setActiveTypers] = useState(new Set());
+  const [incomingCall, setIncomingCall] = useState(null);
+  const [activeCall, setActiveCall] = useState(null);
   const publicKeyCache = useRef(new Map());
+  const peerConnectionRef = useRef(null);
+  const localStreamRef = useRef(null);
   const hasMoreMessages = useRef(true);
+  const typingTimeouts = useRef(new Map());
+
+  const handleTypingSignal = useCallback((userId, isTyping) => {
+    setActiveTypers(prev => {
+      const next = new Set(prev);
+      if (isTyping) next.add(userId);
+      else next.delete(userId);
+      return next;
+    });
+
+    if (isTyping) {
+      if (typingTimeouts.current.has(userId)) clearTimeout(typingTimeouts.current.get(userId));
+      typingTimeouts.current.set(userId, setTimeout(() => {
+        setActiveTypers(prev => {
+          const next = new Set(prev);
+          next.delete(userId);
+          return next;
+        });
+      }, 5000));
+    }
+  }, []);
+
+  const sendWebRTCSignal = async (toUserId, subtype, data) => {
+    try {
+      const recipientPubKey = await getRecipientPublicKey(toUserId);
+      const senderPubKey = await keystore.getPublicKey();
+      const payloadString = JSON.stringify({ type: 'webrtc', subtype, ...data });
+      const payload = await crypto.encryptMessage(payloadString, recipientPubKey, senderPubKey);
+      wsManager.send('message.send', { to: toUserId, payload });
+    } catch (e) { console.error('Signaling error', e); }
+  };
+
+  const handleWebRTCSignal = useCallback(async (senderId, payload) => {
+    if (payload.subtype === 'offer') {
+      setIncomingCall({ callerId: senderId, callerName: 'Incoming Call', offer: payload.sdp });
+    } else if (payload.subtype === 'answer' && peerConnectionRef.current) {
+      await peerConnectionRef.current.setRemoteDescription(payload.sdp);
+    } else if (payload.subtype === 'candidate' && peerConnectionRef.current) {
+      await peerConnectionRef.current.addIceCandidate(payload.candidate);
+    }
+  }, []);
 
   // Connect WebSocket when crypto is ready
   useEffect(() => {
@@ -51,11 +97,30 @@ export function ChatProvider({ children }) {
         if (!privateKey) return;
         const isSender = msg.from_user_id === user.id;
         const decryptedText = await crypto.decryptMessage(msg.payload, privateKey, isSender);
+        let parsedPayload;
+        try {
+          parsedPayload = JSON.parse(decryptedText);
+        } catch {
+          parsedPayload = { type: 'text', content: decryptedText };
+        }
+
+        // Intercept transient messages
+        if (parsedPayload.type === 'typing') {
+          if (!isSender) handleTypingSignal(msg.from_user_id, parsedPayload.isTyping);
+          return; // Do not add to chat history
+        }
+        if (parsedPayload.type === 'webrtc') {
+          handleWebRTCSignal(msg.from_user_id, parsedPayload);
+          return;
+        }
+
         const decryptedMsg = {
           id: msg.id,
           fromUserId: msg.from_user_id,
           toUserId: msg.to_user_id,
-          text: decryptedText,
+          type: parsedPayload.type,
+          content: parsedPayload.content,
+          mimeType: parsedPayload.mimeType,
           createdAt: msg.created_at,
           delivered: msg.delivered,
         };
@@ -122,11 +187,24 @@ export function ChatProvider({ children }) {
         try {
           const isSender = msg.from_user_id === user.id;
           const text = await crypto.decryptMessage(msg.payload, privateKey, isSender);
+          let parsedPayload;
+          try {
+            parsedPayload = JSON.parse(text);
+          } catch {
+            parsedPayload = { type: 'text', content: text };
+          }
+
+          if (parsedPayload.type === 'typing' || parsedPayload.type === 'webrtc') {
+            continue; // Skip transient messages in history
+          }
+
           decrypted.push({
             id: msg.id,
             fromUserId: msg.from_user_id,
             toUserId: msg.to_user_id,
-            text,
+            type: parsedPayload.type,
+            content: parsedPayload.content,
+            mimeType: parsedPayload.mimeType,
             createdAt: msg.created_at,
             delivered: msg.delivered,
           });
@@ -165,9 +243,19 @@ export function ChatProvider({ children }) {
         try {
           const isSender = msg.from_user_id === user.id;
           const text = await crypto.decryptMessage(msg.payload, privateKey, isSender);
+          let parsedPayload;
+          try {
+            parsedPayload = JSON.parse(text);
+          } catch {
+            parsedPayload = { type: 'text', content: text };
+          }
+
+          if (parsedPayload.type === 'typing' || parsedPayload.type === 'webrtc') continue;
+
           decrypted.push({
             id: msg.id, fromUserId: msg.from_user_id, toUserId: msg.to_user_id,
-            text, createdAt: msg.created_at, delivered: msg.delivered,
+            type: parsedPayload.type, content: parsedPayload.content, mimeType: parsedPayload.mimeType,
+            createdAt: msg.created_at, delivered: msg.delivered,
           });
         } catch {
           decrypted.push({
@@ -184,14 +272,19 @@ export function ChatProvider({ children }) {
     }
   }, [activeChat, messages, loadingMessages, user]);
 
-  const sendEncryptedMessage = useCallback(async (text) => {
-    if (!activeChat || !text.trim()) return;
+  const sendEncryptedMessage = useCallback(async (payloadContent) => {
+    if (!activeChat || !payloadContent) return;
     setSendingMessage(true);
     try {
       const recipientPubKey = await getRecipientPublicKey(activeChat.userId);
       const senderPubKey = await keystore.getPublicKey();
       if (!senderPubKey) throw new Error('Sender public key not found');
-      const payload = await crypto.encryptMessage(text, recipientPubKey, senderPubKey);
+      
+      const payloadString = typeof payloadContent === 'string'
+        ? JSON.stringify({ type: 'text', content: payloadContent })
+        : JSON.stringify(payloadContent);
+
+      const payload = await crypto.encryptMessage(payloadString, recipientPubKey, senderPubKey);
       // Try WebSocket first, fallback to REST
       const sent = wsManager.send('message.send', { to: activeChat.userId, payload });
       let msgResponse;
@@ -203,7 +296,9 @@ export function ChatProvider({ children }) {
         id: msgResponse?.id || crypto.arrayBufferToBase64(crypto.base64ToArrayBuffer(btoa(Date.now().toString()))),
         fromUserId: user.id,
         toUserId: activeChat.userId,
-        text,
+        type: typeof payloadContent === 'string' ? 'text' : payloadContent.type,
+        content: typeof payloadContent === 'string' ? payloadContent : payloadContent.content,
+        mimeType: payloadContent.mimeType,
         createdAt: new Date().toISOString(),
         delivered: false,
       };
@@ -217,12 +312,82 @@ export function ChatProvider({ children }) {
     }
   }, [activeChat, user, getRecipientPublicKey, loadConversations]);
 
+  const sendTypingSignal = useCallback(async (isTyping) => {
+    if (!activeChat || wsStatus !== 'connected') return; // Only send if WS is connected
+    try {
+      const recipientPubKey = await getRecipientPublicKey(activeChat.userId);
+      const senderPubKey = await keystore.getPublicKey();
+      const payloadString = JSON.stringify({ type: 'typing', isTyping });
+      const payload = await crypto.encryptMessage(payloadString, recipientPubKey, senderPubKey);
+      wsManager.send('message.send', { to: activeChat.userId, payload });
+    } catch (err) {
+      // ignore silently
+    }
+  }, [activeChat, getRecipientPublicKey, wsStatus]);
+
+  const setupPeerConnection = (partnerId) => {
+    const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
+    peerConnectionRef.current = pc;
+    pc.onicecandidate = (e) => {
+      if (e.candidate) sendWebRTCSignal(partnerId, 'candidate', { candidate: e.candidate });
+    };
+    pc.ontrack = (e) => {
+      setActiveCall(prev => prev ? { ...prev, remoteStream: e.streams[0] } : null);
+    };
+    return pc;
+  };
+
+  const initiateCall = async (partnerId) => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+      localStreamRef.current = stream;
+      const pc = setupPeerConnection(partnerId);
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+      sendWebRTCSignal(partnerId, 'offer', { sdp: offer });
+      setActiveCall({ status: 'connecting', localStream: stream, remoteStream: null });
+    } catch (err) {
+      console.error('Failed to initiate call:', err);
+    }
+  };
+
+  const acceptIncomingCall = async () => {
+    if (!incomingCall) return;
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: true });
+      localStreamRef.current = stream;
+      const pc = setupPeerConnection(incomingCall.callerId);
+      stream.getTracks().forEach(track => pc.addTrack(track, stream));
+      await pc.setRemoteDescription(incomingCall.offer);
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+      sendWebRTCSignal(incomingCall.callerId, 'answer', { sdp: answer });
+      setActiveCall({ status: 'connected', localStream: stream, remoteStream: null });
+      setIncomingCall(null);
+    } catch (err) {
+      console.error('Failed to accept call:', err);
+    }
+  };
+
+  const rejectIncomingCall = () => setIncomingCall(null);
+
+  const endCall = () => {
+    if (peerConnectionRef.current) peerConnectionRef.current.close();
+    if (localStreamRef.current) localStreamRef.current.getTracks().forEach(t => t.stop());
+    peerConnectionRef.current = null;
+    localStreamRef.current = null;
+    setActiveCall(null);
+    setIncomingCall(null);
+  };
+
   return (
     <ChatContext.Provider value={{
-      conversations, activeChat, messages, wsStatus,
-      loadingConvos, loadingMessages, sendingMessage,
+      conversations, activeChat, messages, wsStatus, activeTypers,
+      loadingConvos, loadingMessages, sendingMessage, incomingCall, activeCall,
       openChat, sendEncryptedMessage, loadMoreMessages,
-      loadConversations, setActiveChat,
+      loadConversations, setActiveChat, sendTypingSignal,
+      initiateCall, acceptIncomingCall, rejectIncomingCall, endCall
     }}>
       {children}
     </ChatContext.Provider>

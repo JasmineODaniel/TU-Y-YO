@@ -2,6 +2,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useChat } from '../contexts/ChatContext';
 import ConversationList from '../components/ConversationList';
 import ChatWindow from '../components/ChatWindow';
+import CallOverlay from '../components/CallOverlay';
 
 export default function ChatPage() {
   const { user, logout } = useAuth();
@@ -64,6 +65,7 @@ export default function ChatPage() {
           </div>
         )}
       </main>
+      <CallOverlay />
     </div>
   );
 }
