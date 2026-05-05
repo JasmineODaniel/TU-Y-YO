@@ -1,13 +1,14 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ChatProvider } from './contexts/ChatContext';
+import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
 import ChatPage from './pages/ChatPage';
 import './App.css';
 
 function ProtectedRoute({ children }) {
   const { user, cryptoReady } = useAuth();
-  if (!user || !cryptoReady) return <Navigate to="/login" replace />;
+  if (!user || !cryptoReady) return <Navigate to="/" replace />;
   return children;
 }
 
@@ -20,6 +21,9 @@ function PublicRoute({ children }) {
 function AppRoutes() {
   return (
     <Routes>
+      <Route path="/" element={
+        <PublicRoute><LandingPage /></PublicRoute>
+      } />
       <Route path="/login" element={
         <PublicRoute><LoginPage /></PublicRoute>
       } />
@@ -28,7 +32,7 @@ function AppRoutes() {
           <ChatProvider><ChatPage /></ChatProvider>
         </ProtectedRoute>
       } />
-      <Route path="*" element={<Navigate to="/login" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
