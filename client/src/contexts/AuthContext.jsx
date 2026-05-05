@@ -120,7 +120,7 @@ export function AuthProvider({ children }) {
 
   return (
     <AuthContext.Provider value={{
-      user,
+      user: user ? { ...user, profilePic: localStorage.getItem(`profile_pic_${user.id}`) } : null,
       loading,
       error,
       cryptoReady,
@@ -128,6 +128,12 @@ export function AuthProvider({ children }) {
       register: handleRegister,
       logout: handleLogout,
       clearError,
+      setProfilePic: (base64) => {
+        if (user) {
+          localStorage.setItem(`profile_pic_${user.id}`, base64);
+          setUser({ ...user }); // trigger re-render
+        }
+      }
     }}>
       {children}
     </AuthContext.Provider>
