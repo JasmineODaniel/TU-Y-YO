@@ -26,6 +26,11 @@ export default function LoginPage() {
         setLocalError('Username must be at least 3 characters');
         return;
       }
+      const usernameRegex = /^[a-zA-Z0-9_-]+$/;
+      if (!usernameRegex.test(username)) {
+        setLocalError('Username may only contain letters, digits, _ and -');
+        return;
+      }
       if (password.length < 8) {
         setLocalError('Password must be at least 8 characters');
         return;
@@ -79,21 +84,15 @@ export default function LoginPage() {
       <div className="login-card">
         <div className="login-header">
           <div className="login-logo">
-            <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-              <rect width="48" height="48" rx="0" fill="url(#logoGrad)" />
-              <path d="M14 20C14 16.686 16.686 14 20 14H28C31.314 14 34 16.686 34 20V26C34 29.314 31.314 32 28 32H22L17 36V32H20C16.686 32 14 29.314 14 26V20Z" fill="rgba(255,255,255,0.9)" />
-              <circle cx="21" cy="23" r="2" fill="#0f0f1a" />
-              <circle cx="27" cy="23" r="2" fill="#0f0f1a" />
-              <path d="M20 27C20 27 21.5 29 24 29C26.5 29 28 27 28 27" stroke="#0f0f1a" strokeWidth="1.5" strokeLinecap="round" />
-              <defs>
-                <linearGradient id="logoGrad" x1="0" y1="0" x2="48" y2="48">
-                  <stop stopColor="#A87C62" />
-                  <stop offset="1" stopColor="#8F6953" />
-                </linearGradient>
-              </defs>
+            <svg width="60" height="40" viewBox="0 0 60 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M5 20 H 26" stroke="var(--accent)" strokeWidth="4" strokeLinecap="round" />
+              <path d="M20 14 C 28 14 28 26 20 26" stroke="var(--accent)" strokeWidth="4" strokeLinecap="round" />
+              <path d="M55 20 H 34" stroke="var(--text-primary)" strokeWidth="4" strokeLinecap="round" />
+              <path d="M40 14 C 32 14 32 26 40 26" stroke="var(--text-primary)" strokeWidth="4" strokeLinecap="round" />
+              <circle cx="30" cy="20" r="2" fill="var(--accent-hover)" />
             </svg>
           </div>
-          <h1>TU-Y-YO</h1>
+          <h1 style={{ fontFamily: "'Orbitron', sans-serif", fontStyle: "italic", textTransform: "uppercase", letterSpacing: "2px", fontWeight: 900 }}>TU-Y-YO</h1>
           <p className="login-subtitle">End-to-end encrypted messaging</p>
         </div>
 

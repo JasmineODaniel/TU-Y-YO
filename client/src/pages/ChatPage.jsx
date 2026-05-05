@@ -51,7 +51,7 @@ export default function ChatPage() {
                   <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
                 </svg>
               </div>
-              <h2>TU-Y-YO</h2>
+              <h2 style={{ fontFamily: "'Orbitron', sans-serif", fontStyle: "italic", textTransform: "uppercase", letterSpacing: "2px", fontWeight: 900 }}>TU-Y-YO</h2>
               <p>Select a conversation or search for a user to start messaging.</p>
               <div className="empty-chat-badge">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
