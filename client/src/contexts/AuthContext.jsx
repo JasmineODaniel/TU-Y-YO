@@ -128,10 +128,15 @@ export function AuthProvider({ children }) {
       register: handleRegister,
       logout: handleLogout,
       clearError,
-      setProfilePic: (base64) => {
+      setProfilePic: async (base64) => {
         if (user) {
-          localStorage.setItem(`profile_pic_${user.id}`, base64);
-          setUser({ ...user }); // trigger re-render
+          try {
+            await api.updateProfilePic(base64);
+            setUser(prev => ({ ...prev, profilePic: base64 }));
+            localStorage.setItem(`profile_pic_${user.id}`, base64);
+          } catch (err) {
+            console.error('Failed to upload profile picture', err);
+          }
         }
       }
     }}>

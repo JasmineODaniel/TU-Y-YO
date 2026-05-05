@@ -21,8 +21,8 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Server (Not needed)
-server/
+# Server
+# server/ (Removed to include backend)
 
 # AI context
 .gemini/

@@ -5,7 +5,7 @@
  * Handles message.receive events for real-time message delivery.
  */
 
-const WS_BASE = 'wss://whisperbox.koyeb.app/ws';
+const WS_URL = 'ws://localhost:5000/ws';
 
 export class WebSocketManager {
   constructor() {
@@ -27,7 +27,7 @@ export class WebSocketManager {
   _doConnect() {
     if (!this.token) return;
     try {
-      this.ws = new WebSocket(`${WS_BASE}?token=${this.token}`);
+      this.ws = new WebSocket(`${WS_URL}?token=${this.token}`);
     } catch {
       this._scheduleReconnect();
       return;
