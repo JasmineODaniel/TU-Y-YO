@@ -100,10 +100,7 @@ export default function LoginPage() {
           <div className="form-group">
             <label htmlFor="username">Username</label>
             <div className="input-wrapper">
-              <svg className="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-                <circle cx="12" cy="7" r="4" />
-              </svg>
+              <i className="fa-regular fa-user input-icon"></i>
               <input
                 id="username"
                 type="text"
@@ -121,10 +118,7 @@ export default function LoginPage() {
             <div className="form-group">
               <label htmlFor="displayName">Display Name</label>
               <div className="input-wrapper">
-                <svg className="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10z" />
-                  <path d="M2 21a10 10 0 0 1 20 0" />
-                </svg>
+                <i className="fa-regular fa-id-badge input-icon"></i>
                 <input
                   id="displayName"
                   type="text"
@@ -141,10 +135,7 @@ export default function LoginPage() {
           <div className="form-group">
             <label htmlFor="password">Password</label>
             <div className="input-wrapper">
-              <svg className="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-              </svg>
+              <i className="fa-solid fa-lock input-icon"></i>
               <input
                 id="password"
                 type="password"
@@ -162,9 +153,7 @@ export default function LoginPage() {
             <div className="form-group">
               <label htmlFor="confirmPassword">Confirm Password</label>
               <div className="input-wrapper">
-                <svg className="input-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-                </svg>
+                <i className="fa-solid fa-shield-halved input-icon"></i>
                 <input
                   id="confirmPassword"
                   type="password"
@@ -181,11 +170,7 @@ export default function LoginPage() {
 
           {displayError && (
             <div className="form-error" role="alert">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="15" y1="9" x2="9" y2="15" />
-                <line x1="9" y1="9" x2="15" y2="15" />
-              </svg>
+              <i className="fa-solid fa-circle-exclamation"></i>
               {displayError}
             </div>
           )}
@@ -230,10 +215,7 @@ export default function LoginPage() {
         </div>
 
         <div className="encryption-badge">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-          </svg>
+          <i className="fa-solid fa-lock"></i>
           End-to-end encrypted
         </div>
       </div>
