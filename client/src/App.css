@@ -197,6 +197,24 @@
   color: var(--text-secondary);
 }
 
+.link-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #c084fc;
+  font-family: var(--font-heading);
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 6px;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.link-btn:hover:not(:disabled) {
+  color: #d8b4fe;
+}
+
 .sidebar-hidden-mobile {
   display: none !important;
 }
@@ -321,4 +339,112 @@
 
 .user-search input::placeholder {
   color: rgba(255,255,255,0.4) !important;
+}
+
+/* ── Responsive layout ── */
+
+/* Sidebar base */
+.sidebar {
+  flex-shrink: 0;
+}
+
+/* ── Mobile (≤ 767px) ── */
+@media (max-width: 767px) {
+  /* Login */
+  .login-card {
+    padding: 28px 18px 24px;
+    margin: 12px;
+    border-radius: var(--radius-lg);
+  }
+
+  .login-header h1 {
+    font-size: 20px;
+  }
+
+  .login-subtitle {
+    font-size: 9px;
+  }
+
+  .input-wrapper input {
+    font-size: 16px; /* prevents iOS zoom on focus */
+    padding: 11px 12px 11px 40px;
+  }
+
+  .btn-primary {
+    padding: 14px;
+    font-size: 12px;
+  }
+
+  /* Chat layout: sidebar and chat window each fill full screen */
+  .sidebar {
+    width: 100vw !important;
+    border-right: none !important;
+  }
+
+  .chat-main {
+    width: 100vw !important;
+  }
+
+  /* Chat header: tighten spacing */
+  .chat-header {
+    padding: 8px 12px !important;
+  }
+
+  /* Bubbles: allow slightly wider on mobile */
+  .message-bubble {
+    max-width: 80%;
+  }
+
+  /* Messages area: less side padding */
+  .messages-container {
+    padding: 12px 10px !important;
+  }
+
+  /* Footer: tighten */
+  .chat-footer {
+    padding: 8px 10px !important;
+  }
+
+  /* Conversation list items */
+  .convo-item {
+    padding: 10px 12px !important;
+  }
+}
+
+/* ── Tablet (768px – 1023px) ── */
+@media (min-width: 768px) and (max-width: 1023px) {
+  .login-card {
+    max-width: 380px;
+    padding: 32px 24px 28px;
+  }
+
+  .sidebar {
+    width: 300px !important;
+  }
+
+  .message-bubble {
+    max-width: 70%;
+  }
+}
+
+/* ── Desktop (≥ 1024px) ── */
+@media (min-width: 1024px) {
+  .sidebar {
+    width: 380px !important;
+  }
+
+  .message-bubble {
+    max-width: 60%;
+  }
+}
+
+/* Ensure sidebar-hidden-mobile still works on mobile */
+@media (max-width: 767px) {
+  .sidebar-hidden-mobile {
+    display: none !important;
+  }
+
+  .chat-main-hidden-mobile {
+    display: none !important;
+  }
 }
