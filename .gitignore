@@ -27,3 +27,4 @@ yarn-error.log*
 # AI context
 .gemini/
 .sixth/
+.claude/
