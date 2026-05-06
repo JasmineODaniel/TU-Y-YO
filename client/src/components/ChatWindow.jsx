@@ -1,9 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useChat } from '../contexts/ChatContext';
-import { Video, Phone, MoreVertical, Search, Smile, Paperclip, Mic, Send, ChevronLeft, Lock } from 'lucide-react';
+import { Video, Phone, MoreVertical, ChevronLeft, Lock, Smile, Mic, Send } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import MessageBubble from './MessageBubble';
+
+const ICON_COLOR = '#ffffff';
 
 export default function ChatWindow() {
   const { user } = useAuth();
@@ -33,21 +35,20 @@ export default function ChatWindow() {
         setShowEmojiPicker(false);
       }
     }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   const handleInputChange = (e) => {
     setInputText(e.target.value);
     sendTypingSignal(true);
     if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
-    typingTimeoutRef.current = setTimeout(() => {
-      sendTypingSignal(false);
-    }, 2000);
+    typingTimeoutRef.current = setTimeout(() => sendTypingSignal(false), 2000);
   };
 
   const onEmojiClick = (emojiData) => {
     setInputText(prev => prev + emojiData.emoji);
+    setShowEmojiPicker(false);
   };
 
   const handleSend = async (e) => {
@@ -73,9 +74,8 @@ export default function ChatWindow() {
     }
   };
 
-  const getInitials = (name) => {
-    return name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
-  };
+  const getInitials = (name) =>
+    name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
 
   const startRecording = async () => {
     try {
@@ -83,29 +83,25 @@ export default function ChatWindow() {
       const mediaRecorder = new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       audioChunksRef.current = [];
-
       mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) audioChunksRef.current.push(event.data);
       };
-
       mediaRecorder.onstop = async () => {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
         const reader = new FileReader();
         reader.readAsDataURL(audioBlob);
         reader.onloadend = async () => {
-          const base64data = reader.result;
           try {
-            await sendEncryptedMessage({ type: 'audio', content: base64data, mimeType: 'audio/webm' });
+            await sendEncryptedMessage({ type: 'audio', content: reader.result, mimeType: 'audio/webm' });
           } catch (err) {
             setSendError('Failed to send audio. ' + err.message);
           }
         };
         stream.getTracks().forEach(track => track.stop());
       };
-
       mediaRecorder.start();
       setIsRecording(true);
-    } catch (err) {
+    } catch {
       setSendError('Microphone access denied.');
     }
   };
@@ -119,146 +115,179 @@ export default function ChatWindow() {
 
   if (!activeChat) return null;
 
+  const hasText = inputText.trim().length > 0;
+
   return (
     <div className="chat-window" style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-primary)' }}>
-      <div className="chat-header" style={{ 
-        background: 'var(--bg-header)', 
-        padding: '10px 16px', 
-        display: 'flex', 
-        alignItems: 'center', 
+      {/* Header */}
+      <div className="chat-header" style={{
+        background: 'var(--bg-header)',
+        padding: '10px 16px',
+        display: 'flex',
+        alignItems: 'center',
         height: '60px',
-        color: 'white'
+        color: ICON_COLOR
       }}>
-        <button className="back-btn mobile-only" onClick={() => setActiveChat(null)} style={{ background: 'none', border: 'none', color: 'white', marginRight: '10px' }}>
+        <button className="back-btn mobile-only" onClick={() => setActiveChat(null)} style={{ background: 'none', border: 'none', color: ICON_COLOR, marginRight: '10px', cursor: 'pointer' }}>
           <ChevronLeft size={24} />
         </button>
-        <div className="avatar avatar-sm" style={{
+        <div style={{
           background: activeChat.profile_pic ? `url(${activeChat.profile_pic}) center/cover` : 'var(--accent-gradient)',
-          width: '40px',
-          height: '40px',
-          marginRight: '12px'
+          width: '40px', height: '40px', borderRadius: '50%',
+          marginRight: '12px', display: 'flex', alignItems: 'center',
+          justifyContent: 'center', fontSize: '13px', fontWeight: '600', color: '#fff', flexShrink: 0
         }}>
           {!activeChat.profile_pic && getInitials(activeChat.displayName)}
         </div>
-        <div className="chat-header-info" style={{ flex: 1 }}>
-          <div style={{ fontWeight: '500', fontSize: '16px' }}>{activeChat.displayName}</div>
-          <div style={{ fontSize: '12px', opacity: 0.8 }}>
-            {activeTypers && activeTypers.has(activeChat.userId) ? 'typing...' : `@${activeChat.username}`}
+        <div style={{ flex: 1 }}>
+          <div style={{ fontWeight: '500', fontSize: '16px', color: ICON_COLOR }}>{activeChat.displayName}</div>
+          <div style={{ fontSize: '12px', opacity: 0.7, color: ICON_COLOR }}>
+            {activeTypers?.has(activeChat.userId) ? 'typing...' : `@${activeChat.username}`}
           </div>
         </div>
-        <div className="chat-header-actions" style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-          <button className="icon-btn" onClick={() => initiateCall(activeChat.userId)} title="Video Call" style={{ color: 'white' }}>
+        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+          <button onClick={() => initiateCall(activeChat.userId)} title="Video Call" style={{ background: 'none', border: 'none', cursor: 'pointer', color: ICON_COLOR, display: 'flex' }}>
             <Video size={20} />
           </button>
-          <button className="icon-btn" title="Voice Call" style={{ color: 'white' }}>
+          <button title="Voice Call" style={{ background: 'none', border: 'none', cursor: 'pointer', color: ICON_COLOR, display: 'flex' }}>
             <Phone size={20} />
           </button>
-          <button className="icon-btn" title="More" style={{ color: 'white' }}>
+          <button title="More" style={{ background: 'none', border: 'none', cursor: 'pointer', color: ICON_COLOR, display: 'flex' }}>
             <MoreVertical size={20} />
           </button>
         </div>
       </div>
 
-      <div className="messages-container" ref={messagesContainerRef} style={{ 
-        flex: 1, 
-        overflowY: 'auto', 
-        padding: '20px', 
-        background: 'var(--bg-primary)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '8px'
+      {/* Messages */}
+      <div ref={messagesContainerRef} style={{
+        flex: 1, overflowY: 'auto', padding: '20px',
+        background: 'var(--bg-primary)', display: 'flex', flexDirection: 'column', gap: '8px'
       }}>
         {loadingMessages && (
           <div style={{ textAlign: 'center', padding: '20px', opacity: 0.6 }}>
             <div className="spinner" style={{ margin: '0 auto 10px' }} />
-            <span>Decrypting messages...</span>
+            <span style={{ color: 'var(--text-secondary)' }}>Decrypting messages...</span>
           </div>
         )}
 
         {!loadingMessages && messages.length === 0 && (
           <div style={{ textAlign: 'center', margin: '40px auto', maxWidth: '300px', background: 'var(--bg-secondary)', padding: '15px', borderRadius: 'var(--radius-md)' }}>
-            <div style={{ color: 'var(--accent)', marginBottom: '10px' }}>
-              <Lock size={24} style={{ margin: '0 auto' }} />
-            </div>
+            <Lock size={24} style={{ margin: '0 auto 10px', color: 'var(--accent-hover)' }} />
             <p style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Messages are end-to-end encrypted.</p>
           </div>
         )}
 
         {messages.map((msg) => (
-          <MessageBubble
-            key={msg.id}
-            message={msg}
-            isSent={msg.fromUserId === user.id}
-          />
+          <MessageBubble key={msg.id} message={msg} isSent={msg.fromUserId === user.id} />
         ))}
         <div ref={messagesEndRef} />
       </div>
 
+      {/* Footer / Input */}
       <div className="chat-footer" style={{ background: 'var(--bg-header)', padding: '10px 16px', position: 'relative' }}>
+        {/* Emoji Picker */}
         {showEmojiPicker && (
-          <div ref={emojiPickerRef} style={{ position: 'absolute', bottom: '100%', left: '16px', zIndex: 1000 }}>
-            <EmojiPicker onEmojiClick={onEmojiClick} theme="dark" width={300} height={400} />
+          <div ref={emojiPickerRef} style={{ position: 'absolute', bottom: '70px', left: '16px', zIndex: 1000 }}>
+            <EmojiPicker
+              onEmojiClick={onEmojiClick}
+              theme="dark"
+              width={300}
+              height={380}
+              lazyLoadEmojis={false}
+              skinTonesDisabled
+              searchDisabled={false}
+              previewConfig={{ showPreview: false }}
+            />
           </div>
         )}
-        
+
         {sendError && (
           <div style={{ color: 'var(--danger)', fontSize: '12px', marginBottom: '8px', textAlign: 'center' }}>
             {sendError}
           </div>
         )}
 
-        <form className="message-input-bar" onSubmit={handleSend} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{ display: 'flex', gap: '5px' }}>
-            <button
-              type="button"
-              className="icon-btn"
-              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-            >
-              <Smile size={24} />
-            </button>
-            <button type="button" className="icon-btn">
-              <Paperclip size={24} />
-            </button>
-          </div>
+        <form onSubmit={handleSend} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {/* Emoji button */}
+          <button
+            type="button"
+            onClick={() => setShowEmojiPicker(prev => !prev)}
+            title="Emoji"
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: ICON_COLOR, display: 'flex', alignItems: 'center', flexShrink: 0 }}
+          >
+            <Smile size={24} />
+          </button>
 
+          {/* Text input */}
           <div style={{ flex: 1, background: 'var(--bg-secondary)', borderRadius: '20px', padding: '5px 15px', display: 'flex', alignItems: 'center' }}>
             <textarea
               value={inputText}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="Type a message"
+              rows={1}
+              disabled={sendingMessage}
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'var(--text-primary)',
+                color: '#ffffff',
                 flex: 1,
                 fontSize: '15px',
                 outline: 'none',
                 resize: 'none',
                 maxHeight: '100px',
-                padding: '8px 0'
+                padding: '8px 0',
+                fontFamily: 'inherit',
               }}
-              rows={1}
-              disabled={sendingMessage}
             />
           </div>
 
-          <button
-            type="button"
-            className={`icon-btn ${isRecording ? 'recording' : ''}`}
-            onClick={isRecording ? stopRecording : startRecording}
-          >
-            <Mic size={24} />
-          </button>
-
-          {inputText.trim() && (
+          {/* Mic (idle) or Send (when typing) */}
+          {hasText ? (
             <button
               type="submit"
-              className="icon-btn"
               disabled={sendingMessage}
-              style={{ background: 'white', borderRadius: '50%', padding: '8px' }}
+              title="Send"
+              style={{
+                background: '#7c3aed',
+                border: 'none',
+                borderRadius: '50%',
+                width: '40px',
+                height: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                flexShrink: 0,
+                transition: 'background 0.2s',
+              }}
             >
-              {sendingMessage ? <div className="spinner spinner-sm" /> : <Send size={20} />}
+              {sendingMessage
+                ? <div className="spinner spinner-sm" />
+                : <Send size={18} color="#ffffff" />
+              }
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={isRecording ? stopRecording : startRecording}
+              title={isRecording ? 'Stop recording' : 'Voice message'}
+              style={{
+                background: isRecording ? '#d63031' : 'none',
+                border: 'none',
+                borderRadius: '50%',
+                width: '40px',
+                height: '40px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: ICON_COLOR,
+                flexShrink: 0,
+                transition: 'background 0.2s',
+              }}
+            >
+              <Mic size={24} />
             </button>
           )}
         </form>
