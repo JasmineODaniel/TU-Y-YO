@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useChat } from '../contexts/ChatContext';
-import { CircleUser, MessageSquarePlus, Settings, LogOut, MoreVertical, Search } from 'lucide-react';
+import { Settings, Search } from 'lucide-react';
 import ConversationList from '../components/ConversationList';
 import ChatWindow from '../components/ChatWindow';
 import CallOverlay from '../components/CallOverlay';
@@ -11,7 +11,6 @@ export default function ChatPage() {
   const { user, logout } = useAuth();
   const { activeChat, wsStatus } = useChat();
   const [showProfile, setShowProfile] = useState(false);
-  const [showMenu, setShowMenu] = useState(false);
 
   const getInitials = (name) => {
     return name?.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
@@ -48,44 +47,21 @@ export default function ChatPage() {
             {!user?.profilePic && getInitials(user?.display_name)}
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', color: '#ffffff' }}>
-            <button className="icon-btn" onClick={() => setShowProfile(true)} title="Settings" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ffffff', display: 'flex' }}>
-              <Settings size={20} />
+          <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <button
+              onClick={() => setShowProfile(true)}
+              title="Settings"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ffffff', display: 'flex', alignItems: 'center', padding: '6px' }}
+            >
+              <Settings size={18} />
             </button>
-            <div style={{ position: 'relative' }}>
-              <button className="icon-btn" onClick={() => setShowMenu(!showMenu)} title="Menu" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ffffff', display: 'flex' }}>
-                <MoreVertical size={20} />
-              </button>
-              {showMenu && (
-                <div className="dropdown-menu" style={{
-                  position: 'absolute',
-                  top: '100%',
-                  right: '0',
-                  background: 'var(--bg-secondary)',
-                  border: '1px solid var(--border-light)',
-                  borderRadius: 'var(--radius-sm)',
-                  boxShadow: 'var(--shadow-md)',
-                  zIndex: 100,
-                  width: '150px',
-                  marginTop: '5px'
-                }}>
-                  <button className="menu-item" onClick={() => { logout(); setShowMenu(false); }} style={{
-                    width: '100%',
-                    padding: '10px 15px',
-                    textAlign: 'left',
-                    background: 'none',
-                    border: 'none',
-                    color: 'var(--text-primary)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '10px'
-                  }}>
-                    <LogOut size={16} /> Logout
-                  </button>
-                </div>
-              )}
-            </div>
+            <button
+              onClick={logout}
+              title="Sign out"
+              style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ffffff', display: 'flex', alignItems: 'center', padding: '6px' }}
+            >
+              <i className="fa-solid fa-right-from-bracket" style={{ fontSize: '16px' }} />
+            </button>
           </div>
         </div>
 
