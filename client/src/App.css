@@ -236,11 +236,12 @@
 }
 
 .chat-footer textarea::placeholder {
-  color: rgba(255, 255, 255, 0.4);
+  color: rgba(255, 255, 255, 0.4) !important;
 }
 
 .chat-footer textarea {
-  color: #ffffff;
+  color: #ffffff !important;
+  caret-color: #ffffff;
 }
 
 .icon-btn {
