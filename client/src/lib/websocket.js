@@ -1,4 +1,4 @@
-const WS_URL = 'ws://localhost:5000/ws';
+const WS_URL = import.meta.env.VITE_WS_URL || 'wss://whisperbox.koyeb.app/ws';
 
 class WebSocketManager {
   constructor() {

@@ -48,12 +48,12 @@ export default function ChatPage() {
             {!user?.profilePic && getInitials(user?.display_name)}
           </div>
 
-          <div style={{ display: 'flex', gap: '8px', color: 'var(--text-secondary)' }}>
-            <button className="icon-btn" onClick={() => setShowProfile(true)} title="Settings">
+          <div style={{ display: 'flex', gap: '8px', color: '#ffffff' }}>
+            <button className="icon-btn" onClick={() => setShowProfile(true)} title="Settings" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ffffff', display: 'flex' }}>
               <Settings size={20} />
             </button>
             <div style={{ position: 'relative' }}>
-              <button className="icon-btn" onClick={() => setShowMenu(!showMenu)} title="Menu">
+              <button className="icon-btn" onClick={() => setShowMenu(!showMenu)} title="Menu" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#ffffff', display: 'flex' }}>
                 <MoreVertical size={20} />
               </button>
               {showMenu && (
@@ -99,17 +99,17 @@ export default function ChatPage() {
             padding: '0 12px',
             height: '35px'
           }}>
-            <Search size={16} style={{ color: 'var(--text-tertiary)', marginRight: '10px' }} />
-            <input 
-              type="text" 
-              placeholder="Search or start new chat" 
+            <Search size={16} style={{ color: '#ffffff', marginRight: '10px' }} />
+            <input
+              type="text"
+              placeholder="Search or start new chat"
               style={{
                 background: 'none',
                 border: 'none',
-                color: 'var(--text-primary)',
+                color: '#ffffff',
                 fontSize: '14px',
                 width: '100%',
-                outline: 'none'
+                outline: 'none',
               }}
             />
           </div>

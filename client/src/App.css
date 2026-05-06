@@ -216,3 +216,109 @@
     display: flex !important;
   }
 }
+
+.chat-footer textarea::placeholder {
+  color: rgba(255, 255, 255, 0.4);
+}
+
+.chat-footer textarea {
+  color: #ffffff;
+}
+
+.icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+/* ── WhatsApp-style message bubbles ── */
+.message-bubble-wrapper {
+  display: flex;
+  margin-bottom: 2px;
+}
+
+.message-bubble-wrapper.sent {
+  justify-content: flex-end;
+}
+
+.message-bubble-wrapper.received {
+  justify-content: flex-start;
+}
+
+.message-bubble {
+  max-width: 65%;
+  min-width: 80px;
+  padding: 8px 12px 4px 12px;
+  border-radius: 12px;
+  position: relative;
+  word-break: break-word;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.3);
+}
+
+.bubble-sent {
+  background: var(--bubble-sent);
+  color: var(--bubble-sent-text);
+  border-bottom-right-radius: 3px;
+}
+
+.bubble-received {
+  background: var(--bubble-received);
+  color: var(--bubble-received-text);
+  border-bottom-left-radius: 3px;
+}
+
+.bubble-error {
+  background: var(--danger-dim);
+  border: 1px solid rgba(214,48,49,0.3);
+  opacity: 0.8;
+}
+
+.bubble-text {
+  font-size: 14.5px;
+  line-height: 1.4;
+  white-space: pre-wrap;
+  padding-right: 4px;
+}
+
+.bubble-audio audio {
+  width: 200px;
+  height: 36px;
+}
+
+.bubble-meta {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 2px;
+}
+
+.bubble-time {
+  font-size: 11px;
+  opacity: 0.65;
+}
+
+.bubble-lock {
+  font-size: 9px;
+  opacity: 0.45;
+}
+
+.bubble-check {
+  font-size: 11px;
+  opacity: 0.75;
+}
+
+/* Search input white text */
+.user-search input {
+  color: #ffffff !important;
+}
+
+.user-search input::placeholder {
+  color: rgba(255,255,255,0.4) !important;
+}

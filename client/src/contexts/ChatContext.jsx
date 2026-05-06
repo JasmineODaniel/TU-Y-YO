@@ -18,6 +18,7 @@ export function ChatProvider({ children }) {
   const [conversations, setConversations] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
   const [messages, setMessages] = useState([]);
+  const [unreadCounts, setUnreadCounts] = useState({});
   const [loadingConvos, setLoadingConvos] = useState(false);
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [sendingMessage, setSendingMessage] = useState(false);
@@ -127,6 +128,11 @@ export function ChatProvider({ children }) {
               if (msgs.some(m => m.id === msg.id)) return msgs;
               return [...msgs, decryptedMsg];
             });
+          } else if (!isSender) {
+            setUnreadCounts(counts => ({
+              ...counts,
+              [partnerId]: (counts[partnerId] || 0) + 1,
+            }));
           }
           return prev;
         });
@@ -164,6 +170,7 @@ export function ChatProvider({ children }) {
   const openChat = useCallback(async (userId, displayName, username) => {
     setActiveChat({ userId, displayName, username });
     setMessages([]);
+    setUnreadCounts(counts => { const next = { ...counts }; delete next[userId]; return next; });
     setLoadingMessages(true);
     hasMoreMessages.current = true;
     try {
@@ -360,7 +367,7 @@ export function ChatProvider({ children }) {
 
   return (
     <ChatContext.Provider value={{
-      conversations, activeChat, messages, wsStatus, activeTypers,
+      conversations, activeChat, messages, wsStatus, activeTypers, unreadCounts,
       loadingConvos, loadingMessages, sendingMessage, incomingCall, activeCall,
       openChat, sendEncryptedMessage, loadMoreMessages,
       loadConversations, setActiveChat, sendTypingSignal,

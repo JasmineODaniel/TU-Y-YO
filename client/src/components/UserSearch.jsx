@@ -53,7 +53,7 @@ export default function UserSearch({ onSelectUser, onClose }) {
         padding: '0 12px',
         height: '40px'
       }}>
-        <Search size={18} style={{ color: 'var(--text-tertiary)', marginRight: '10px' }} />
+        <Search size={18} style={{ color: '#ffffff', marginRight: '10px' }} />
         <input
           ref={inputRef}
           type="text"
@@ -63,7 +63,7 @@ export default function UserSearch({ onSelectUser, onClose }) {
           style={{
             background: 'none',
             border: 'none',
-            color: 'var(--text-primary)',
+            color: '#ffffff',
             fontSize: '14px',
             width: '100%',
             outline: 'none'
