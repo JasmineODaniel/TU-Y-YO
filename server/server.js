@@ -159,6 +159,33 @@ app.get("/conversations/:userId/messages", authenticate, async (req, res) => {
   })));
 });
 
+app.post("/messages", authenticate, async (req, res) => {
+  try {
+    const { to, payload } = req.body;
+    const msg = new Message({ from_user_id: req.userId, to_user_id: to, payload });
+    await msg.save();
+
+    const recipientWs = userSockets.get(to);
+    const outMsg = {
+      type: "message.receive",
+      data: {
+        id: msg._id,
+        from_user_id: req.userId,
+        to_user_id: to,
+        payload,
+        created_at: msg.created_at
+      }
+    };
+    if (recipientWs && recipientWs.readyState === 1) {
+      recipientWs.send(JSON.stringify(outMsg));
+    }
+
+    res.json({ id: msg._id, created_at: msg.created_at });
+  } catch (err) {
+    res.status(500).json({ detail: "Failed to send message" });
+  }
+});
+
 const userSockets = new Map();
 
 wss.on("connection", (ws, req, userId) => {
