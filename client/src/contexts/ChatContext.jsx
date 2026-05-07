@@ -122,20 +122,24 @@ export function ChatProvider({ children }) {
         };
 
         const partnerId = isSender ? msg.to_user_id : msg.from_user_id;
-        setActiveChat(prev => {
-          if (prev && prev.userId === partnerId) {
-            setMessages(msgs => {
-              if (msgs.some(m => m.id === msg.id)) return msgs;
-              return [...msgs, decryptedMsg];
-            });
-          } else if (!isSender) {
-            setUnreadCounts(counts => ({
-              ...counts,
-              [partnerId]: (counts[partnerId] || 0) + 1,
-            }));
-          }
-          return prev;
-        });
+
+        // Only add to messages for the recipient — sender already added optimistically
+        if (!isSender) {
+          setActiveChat(prev => {
+            if (prev && prev.userId === partnerId) {
+              setMessages(msgs => {
+                if (msgs.some(m => m.id === msg.id)) return msgs;
+                return [...msgs, decryptedMsg];
+              });
+            } else {
+              setUnreadCounts(counts => ({
+                ...counts,
+                [partnerId]: (counts[partnerId] || 0) + 1,
+              }));
+            }
+            return prev;
+          });
+        }
 
         loadConversations();
       } catch (err) { }
@@ -171,6 +175,15 @@ export function ChatProvider({ children }) {
     setActiveChat({ userId, displayName, username });
     setMessages([]);
     setUnreadCounts(counts => { const next = { ...counts }; delete next[userId]; return next; });
+
+    // Add to sidebar immediately so it shows without waiting for DB round-trip
+    setConversations(prev => {
+      if (!prev.some(c => c.user_id?.toString() === userId?.toString())) {
+        return [{ user_id: userId, display_name: displayName, username, profile_pic: null, last_message_at: null }, ...prev];
+      }
+      return prev;
+    });
+
     setLoadingMessages(true);
     hasMoreMessages.current = true;
     try {
@@ -294,6 +307,19 @@ export function ChatProvider({ children }) {
         delivered: false,
       };
       setMessages(prev => [...prev, newMsg]);
+
+      // Move conversation to top of sidebar immediately (don't wait for DB round-trip)
+      setConversations(prev => {
+        const filtered = prev.filter(c => c.user_id?.toString() !== activeChat.userId?.toString());
+        return [{
+          user_id: activeChat.userId,
+          display_name: activeChat.displayName,
+          username: activeChat.username,
+          profile_pic: null,
+          last_message_at: new Date().toISOString(),
+        }, ...filtered];
+      });
+
       loadConversations();
     } catch (err) {
       throw err;
